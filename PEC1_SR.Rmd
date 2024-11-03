@@ -17,10 +17,6 @@ library(dplyr)
 library(reshape2)
 ```
 
-```{r}
-usethis::use_git()
-```
-
 
 # Clase SummarizedExperiment
 
@@ -34,6 +30,9 @@ SE = do_query(
 
 SE
 ```
+
+Podemos ver la dimensión de la clase SummarizedExperiment
+
 ```{r}
 dim(SE)
 ```
@@ -64,12 +63,15 @@ assays(SE)[[1]]
 
 # Representación datos
 
+## Tendencia de las concentraciones de los diferentes metabolitos a lo largo de los días
+
 ```{r}
 # generamos un data frame con los datos
 datos <- assays(SE)[[1]]
-# Renombrar la columna de metabolitos
+# renombramos la columna de metabolitos
 datos$Metabolito <- rowData(SE)[,3]
-# Transformar los datos a formato largo
+# Transformar los datos en formato:
+# tipo de metabolito, día, réplica y concentración
 datos_long <- datos %>%
   pivot_longer(
     cols = -Metabolito,  # Selecciona todas las columnas excepto "Metabolito"
@@ -82,7 +84,9 @@ datos_long <- datos %>%
 datos_long <- datos_long %>%
   mutate(Día = as.numeric(Día),
          Réplica = as.numeric(Réplica))
-ggplot(datos_long, aes(x = Día, y = Concentración, color = Metabolito, group = interaction(Metabolito, Réplica))) +
+# representamos la tendencia de concentración
+ggplot(datos_long, 
+       aes(x = Día, y = Concentración, color = Metabolito, group = interaction(Metabolito, Réplica))) +
   geom_line(alpha = 0.6) +
   geom_point(size = 1) +
   labs(title = "Tendencias de Concentración de Metabolitos a lo Largo del Tiempo",
@@ -90,27 +94,32 @@ ggplot(datos_long, aes(x = Día, y = Concentración, color = Metabolito, group =
        y = "Concentración") +
   theme_minimal()
 ```
+
+## Análisis de los componentes princiales (PCA)
+
 ```{r}
+# queremos realizar un PCA de los diferentes metabolitos a diferentes días
+# para ello necesitamso los datos en formato columna, donde cada columna sea una condición, y hay dos primeras columnas con el día y la réplica
 datos_wide <- datos_long %>%
   pivot_wider(names_from = Metabolito, values_from = Concentración) %>%
-  arrange(Día, Réplica)  # Ordenar por día y réplica
-# Seleccionar únicamente las columnas de metabolitos para el PCA
+  arrange(Día, Réplica)  # ordenamos por día y réplica
+# seleccionamos únicamente las columnas de metabolitos para el PCA
 datos_pca <- datos_wide %>%
-  select(-Día, -Réplica)  # Excluir las columnas "Día" y "Réplica"
+  select(-Día, -Réplica)  # excluímos las columnas "Día" y "Réplica"
 
-# Estandarizar los datos antes del PCA (es recomendable para variables con diferentes unidades)
+# estandarizamos los datos antes del PCA 
 datos_pca <- scale(datos_pca)
 
-# Realizar el PCA
+# realizamos el PCA
 pca <- prcomp(datos_pca, center = TRUE, scale. = TRUE)
 
-# Resumen del PCA para ver la varianza explicada
+# vemos el del PCA para ver la varianza explicada
 summary(pca)
 
-# Convertir resultados del PCA en un data frame para ggplot2
+# convertimos resultados del PCA en un data frame para representarlo mediante ggplot2
 pca_data <- as.data.frame(pca$x)
-pca_data$Día <- datos_wide$Día  # Agregar la información de día
-pca_data$Réplica <- datos_wide$Réplica  # Agregar la información de réplica
+pca_data$Día <- datos_wide$Día  # agregamos la información de día
+pca_data$Réplica <- datos_wide$Réplica  # agregamos la información de réplica
 ```
 ```{r}
 ggplot(pca_data, aes(x = PC1, y = PC2, color = factor(Día))) +
@@ -122,7 +131,12 @@ ggplot(pca_data, aes(x = PC1, y = PC2, color = factor(Día))) +
   theme_minimal()
 ```
 
+
+## Boxplot de concentración de metabolitos por día  
+
 ```{r}
+# generamos un boxplot para cada metabolito
+# donde mostremos la concentración a lo largo del tiempo
 ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito)) +
   geom_boxplot() +
   facet_wrap(~ Metabolito, scales = "free_y") +
@@ -131,11 +145,13 @@ ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito))
        y = "Concentración") +
   theme_minimal()
 ```
-```{r}
-# Cambiar formato para el heatmap
-datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
+# Heatmap 
 
-# Crear heatmap
+```{r}
+# cambiamos formato de los datos para el heatmap
+# calculamos la media de concentración de cada metabolito
+datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
+# creamos el heatmap
 ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
   geom_tile() +
   scale_fill_gradient(low = "blue", high = "red") +
@@ -143,7 +159,6 @@ ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
        x = "Día",
        y = "Metabolito") +
   theme_minimal()
-
 ```
 
 # Sesión de R
