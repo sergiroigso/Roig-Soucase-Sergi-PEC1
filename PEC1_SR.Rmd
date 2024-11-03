@@ -1,0 +1,155 @@
+---
+title: "PEC1_SR"
+author: "Sergi Roig Soucase"
+date: "2024-11-03"
+output: html_document
+---
+
+# Paquete de metabolomicsWorkbenchR
+
+```{r echo=TRUE, message=FALSE}
+library(metabolomicsWorkbenchR)
+library(SummarizedExperiment)
+library(knitr)
+library(ggplot2)
+library(tidyr)
+library(dplyr)
+library(reshape2)
+library(usethis)
+```
+
+```{r}
+usethis::use_git()
+```
+
+
+# Clase SummarizedExperiment
+
+```{r}
+SE = do_query(
+    context = 'study',
+    input_item = 'study_id',
+    input_value = 'ST002892',
+    output_item = 'SummarizedExperiment'
+)
+
+SE
+```
+```{r}
+dim(SE)
+```
+
+
+# Metadata
+
+```{r}
+metadata(SE)
+```
+
+# Filas 
+```{r}
+kable(rowData(SE))
+```
+# Columnas
+
+```{r}
+kable(colData(SE))
+```
+
+# Accedemos a los datos
+
+```{r}
+assays(SE)
+assays(SE)[[1]]
+```
+
+# Representación datos
+
+```{r}
+# generamos un data frame con los datos
+datos <- assays(SE)[[1]]
+# Renombrar la columna de metabolitos
+datos$Metabolito <- rowData(SE)[,3]
+# Transformar los datos a formato largo
+datos_long <- datos %>%
+  pivot_longer(
+    cols = -Metabolito,  # Selecciona todas las columnas excepto "Metabolito"
+    names_to = c("Día", "Réplica"),  # Nombres para las nuevas columnas
+    names_pattern = ".*Day(\\d+)_Folate_(\\d+)",  # Extrae el día y réplica del nombre original
+    values_to = "Concentración"
+  )
+
+# Convertir "Día" y "Réplica" a variables numéricas
+datos_long <- datos_long %>%
+  mutate(Día = as.numeric(Día),
+         Réplica = as.numeric(Réplica))
+ggplot(datos_long, aes(x = Día, y = Concentración, color = Metabolito, group = interaction(Metabolito, Réplica))) +
+  geom_line(alpha = 0.6) +
+  geom_point(size = 1) +
+  labs(title = "Tendencias de Concentración de Metabolitos a lo Largo del Tiempo",
+       x = "Día",
+       y = "Concentración") +
+  theme_minimal()
+```
+```{r}
+datos_wide <- datos_long %>%
+  pivot_wider(names_from = Metabolito, values_from = Concentración) %>%
+  arrange(Día, Réplica)  # Ordenar por día y réplica
+# Seleccionar únicamente las columnas de metabolitos para el PCA
+datos_pca <- datos_wide %>%
+  select(-Día, -Réplica)  # Excluir las columnas "Día" y "Réplica"
+
+# Estandarizar los datos antes del PCA (es recomendable para variables con diferentes unidades)
+datos_pca <- scale(datos_pca)
+
+# Realizar el PCA
+pca <- prcomp(datos_pca, center = TRUE, scale. = TRUE)
+
+# Resumen del PCA para ver la varianza explicada
+summary(pca)
+
+# Convertir resultados del PCA en un data frame para ggplot2
+pca_data <- as.data.frame(pca$x)
+pca_data$Día <- datos_wide$Día  # Agregar la información de día
+pca_data$Réplica <- datos_wide$Réplica  # Agregar la información de réplica
+```
+```{r}
+ggplot(pca_data, aes(x = PC1, y = PC2, color = factor(Día))) +
+  geom_point(size = 3, alpha = 0.7) +
+  labs(title = "PCA de Concentraciones de Metabolitos",
+       x = paste0("PC1 (", round(pca$sdev[1]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
+       y = paste0("PC2 (", round(pca$sdev[2]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
+       color = "Día") +
+  theme_minimal()
+```
+
+```{r}
+ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito)) +
+  geom_boxplot() +
+  facet_wrap(~ Metabolito, scales = "free_y") +
+  labs(title = "Distribución de Concentraciones de Metabolitos por Día",
+       x = "Día",
+       y = "Concentración") +
+  theme_minimal()
+```
+```{r}
+# Cambiar formato para el heatmap
+datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
+
+# Crear heatmap
+ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Heatmap de Concentraciones Promedio de Metabolitos",
+       x = "Día",
+       y = "Metabolito") +
+  theme_minimal()
+
+```
+
+# Sesión de R
+
+```{r}
+sessionInfo()
+```
+
