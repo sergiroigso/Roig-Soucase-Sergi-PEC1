@@ -1,11 +1,12 @@
 ---
 title: "PEC1_SR"
 author: "Sergi Roig Soucase"
-date: "2024-11-03"
-output: html_document
+output:
+  word_document: default
+  html_document: default
 ---
 
-# Paquete de metabolomicsWorkbenchR
+# Paquetes utilizados
 
 ```{r echo=TRUE, message=FALSE}
 library(metabolomicsWorkbenchR)
@@ -27,7 +28,8 @@ SE = do_query(
     input_value = 'ST002892',
     output_item = 'SummarizedExperiment'
 )
-
+# guardamos el archivo en un .rda
+save(SE, file = "ST002892_SE.Rda")
 SE
 ```
 
@@ -70,13 +72,15 @@ assays(SE)[[1]]
 datos <- assays(SE)[[1]]
 # renombramos la columna de metabolitos
 datos$Metabolito <- rowData(SE)[,3]
+# exportamos los datos
+write.csv(datos, "ST002892_data.csv")
 # Transformar los datos en formato:
 # tipo de metabolito, día, réplica y concentración
 datos_long <- datos %>%
   pivot_longer(
-    cols = -Metabolito,  # Selecciona todas las columnas excepto "Metabolito"
-    names_to = c("Día", "Réplica"),  # Nombres para las nuevas columnas
-    names_pattern = ".*Day(\\d+)_Folate_(\\d+)",  # Extrae el día y réplica del nombre original
+    cols = -Metabolito,  # seleccionamos todas las columnas excepto "Metabolito"
+    names_to = c("Día", "Réplica"),  # nobmres para las nuevas columnas
+    names_pattern = ".*Day(\\d+)_Folate_(\\d+)",  # extraemos el día y réplica del nombre original
     values_to = "Concentración"
   )
 
@@ -92,6 +96,36 @@ ggplot(datos_long,
   labs(title = "Tendencias de Concentración de Metabolitos a lo Largo del Tiempo",
        x = "Día",
        y = "Concentración") +
+  theme_minimal()
+```
+
+
+## Boxplot de concentración de metabolitos por día  
+
+```{r}
+# generamos un boxplot para cada metabolito
+# donde mostremos la concentración a lo largo del tiempo
+ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito)) +
+  geom_boxplot() +
+  facet_wrap(~ Metabolito, scales = "free_y") +
+  labs(title = "Distribución de Concentraciones de Metabolitos por Día",
+       x = "Día",
+       y = "Concentración") +
+  theme_minimal()
+```
+# Heatmap 
+
+```{r}
+# cambiamos formato de los datos para el heatmap
+# calculamos la media de concentración de cada metabolito
+datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
+# creamos el heatmap
+ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Heatmap de Concentraciones Promedio de Metabolitos",
+       x = "Día",
+       y = "Metabolito") +
   theme_minimal()
 ```
 
@@ -128,36 +162,6 @@ ggplot(pca_data, aes(x = PC1, y = PC2, color = factor(Día))) +
        x = paste0("PC1 (", round(pca$sdev[1]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
        y = paste0("PC2 (", round(pca$sdev[2]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
        color = "Día") +
-  theme_minimal()
-```
-
-
-## Boxplot de concentración de metabolitos por día  
-
-```{r}
-# generamos un boxplot para cada metabolito
-# donde mostremos la concentración a lo largo del tiempo
-ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito)) +
-  geom_boxplot() +
-  facet_wrap(~ Metabolito, scales = "free_y") +
-  labs(title = "Distribución de Concentraciones de Metabolitos por Día",
-       x = "Día",
-       y = "Concentración") +
-  theme_minimal()
-```
-# Heatmap 
-
-```{r}
-# cambiamos formato de los datos para el heatmap
-# calculamos la media de concentración de cada metabolito
-datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
-# creamos el heatmap
-ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient(low = "blue", high = "red") +
-  labs(title = "Heatmap de Concentraciones Promedio de Metabolitos",
-       x = "Día",
-       y = "Metabolito") +
   theme_minimal()
 ```
 
