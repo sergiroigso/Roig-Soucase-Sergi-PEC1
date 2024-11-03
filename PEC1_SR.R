@@ -10,7 +10,9 @@ SE = do_query(
   input_value = 'ST002892',
   output_item = 'SummarizedExperiment'
 )
-SE
+# guardamos el objeto contenedor 
+save(SE, file = "ST002892_SE.Rda")
+
 
 ## FORMATO Y TIPO DE LOS DATOS
 
@@ -42,6 +44,8 @@ library(dplyr)
 datos <- assays(SE)[[1]]
 # renombramos la columna de metabolitos
 datos$Metabolito <- rowData(SE)[,3]
+# exportamos los datos
+write.csv(datos, "ST002892_data.csv")
 # transformamos los datos en formato:
 # tipo de metabolito, día, réplica y concentración
 datos_long <- datos %>%
