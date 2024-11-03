@@ -15,7 +15,6 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(reshape2)
-library(usethis)
 ```
 
 ```{r}
