@@ -2,8 +2,8 @@
 title: "PEC1_SR"
 author: "Sergi Roig Soucase"
 output:
-  html_document: default
   word_document: default
+  html_document: default
 ---
 
 # Paquetes utilizados
@@ -16,6 +16,8 @@ library(ggplot2)
 library(tidyr)
 library(dplyr)
 library(reshape2)
+library(usethis)
+library(gitcreds)
 ```
 
 
@@ -164,6 +166,16 @@ ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
        y = "Metabolito") +
   theme_minimal()
 ```
+
+```{r}
+# subimos a github
+usethis::edit_git_config() # editar archivo .gitconfig
+usethis::use_git() # inicializar repositorio git
+usethis::create_github_token() # creamos un token de github
+gitcreds::gitcreds_set() # añadimos el token a rstudio
+usethis::use_github() # creamos repositorio en github
+```
+
 
 # Sesión de R
 
