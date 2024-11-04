@@ -127,7 +127,13 @@ ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
 
 # subimos a github
 library(usethis)
-usethis::use_github()
+usethis::edit_git_config() # editar archivo .gitconfig
+usethis::use_git() # inicializar repositorio git
+usethis::create_github_token() # creamos un token de github
+library(gitcreds)
+gitcreds::gitcreds_set() # añadimos el token a rstudio
+
+usethis::use_github() # creamos repositorio en github
 
 # Sesión de R
 sessionInfo()
