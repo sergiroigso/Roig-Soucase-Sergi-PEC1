@@ -2,8 +2,8 @@
 title: "PEC1_SR"
 author: "Sergi Roig Soucase"
 output:
-  word_document: default
   html_document: default
+  word_document: default
 ---
 
 # Paquetes utilizados
@@ -113,21 +113,6 @@ ggplot(datos_long, aes(x = factor(Día), y = Concentración, fill = Metabolito))
        y = "Concentración") +
   theme_minimal()
 ```
-# Heatmap 
-
-```{r}
-# cambiamos formato de los datos para el heatmap
-# calculamos la media de concentración de cada metabolito
-datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
-# creamos el heatmap
-ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
-  geom_tile() +
-  scale_fill_gradient(low = "blue", high = "red") +
-  labs(title = "Heatmap de Concentraciones Promedio de Metabolitos",
-       x = "Día",
-       y = "Metabolito") +
-  theme_minimal()
-```
 
 ## Análisis de los componentes princiales (PCA)
 
@@ -162,6 +147,21 @@ ggplot(pca_data, aes(x = PC1, y = PC2, color = factor(Día))) +
        x = paste0("PC1 (", round(pca$sdev[1]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
        y = paste0("PC2 (", round(pca$sdev[2]^2 / sum(pca$sdev^2) * 100, 1), "% varianza)"),
        color = "Día") +
+  theme_minimal()
+```
+# Heatmap 
+
+```{r}
+# cambiamos formato de los datos para el heatmap
+# calculamos la media de concentración de cada metabolito
+datos_wide <- dcast(datos_long, Metabolito ~ Día, value.var = "Concentración", fun.aggregate = mean)
+# creamos el heatmap
+ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  labs(title = "Heatmap de Concentraciones Promedio de Metabolitos",
+       x = "Día",
+       y = "Metabolito") +
   theme_minimal()
 ```
 
