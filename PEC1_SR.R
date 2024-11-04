@@ -124,3 +124,10 @@ ggplot(melt(datos_wide), aes(x = variable, y = Metabolito, fill = value)) +
        x = "Día",
        y = "Metabolito") +
   theme_minimal()
+
+# subimos a github
+library(usethis)
+usethis::use_github()
+
+# Sesión de R
+sessionInfo()
